@@ -119,11 +119,6 @@
       <pointsize>12</pointsize>
      </font>
     </property>
-    <item>
-     <property name="text">
-      <string>123123</string>
-     </property>
-    </item>
    </widget>
    <widget class="QLabel" name="vidlist_lbl">
     <property name="geometry">
@@ -388,7 +383,7 @@ left: 10px;
      <rect>
       <x>340</x>
       <y>420</y>
-      <width>51</width>
+      <width>91</width>
       <height>31</height>
      </rect>
     </property>
@@ -633,7 +628,12 @@ left: 10px;
     <property name="title">
      <string>Profile</string>
     </property>
-    <addaction name="actionSwitch_Profile"/>
+    <widget class="QMenu" name="menuSwitch_Profile">
+     <property name="title">
+      <string>Switch Profile</string>
+     </property>
+    </widget>
+    <addaction name="menuSwitch_Profile"/>
     <addaction name="actionManage_Profile"/>
    </widget>
    <addaction name="menuProfile"/>
@@ -647,6 +647,11 @@ left: 10px;
   <action name="actionManage_Profile">
    <property name="text">
     <string>Manage Profile</string>
+   </property>
+  </action>
+  <action name="action123_2">
+   <property name="text">
+    <string>123</string>
    </property>
   </action>
  </widget>

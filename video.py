@@ -27,8 +27,9 @@ class VideoPlayer(QWidget):
 
         # hide window border
         self.setWindowFlags(Qt.FramelessWindowHint)
+
  
-        self.show()
+        # self.show()
  
  
     def init_ui(self):
@@ -39,11 +40,6 @@ class VideoPlayer(QWidget):
         videowidget = QVideoWidget()
         videowidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
  
-        #create slider
-        # self.slider = QSlider(Qt.Horizontal)
-        # self.slider.setRange(0,0)
-        # self.slider.sliderMoved.connect(self.set_position)
- 
         vboxLayout = QVBoxLayout()
         vboxLayout.addWidget(videowidget)
         self.setLayout(vboxLayout)
@@ -51,7 +47,6 @@ class VideoPlayer(QWidget):
         self.mediaPlayer.setVideoOutput(videowidget)
  
         #media player signals
- 
         self.mediaPlayer.stateChanged.connect(lambda state: self.handle_mediastate_changed(state == QMediaPlayer.PlayingState))
         self.mediaPlayer.positionChanged.connect(self.handle_position_changed)
         self.mediaPlayer.durationChanged.connect(self.handle_duration_changed)
@@ -66,7 +61,7 @@ class VideoPlayer(QWidget):
  
  
     def play_video(self):
-        print('play video', self.video_path)
+        # print('play video', self.video_path)
         if len(self.video_path) == 0: return
 
         try:
@@ -90,16 +85,6 @@ class VideoPlayer(QWidget):
     def set_volume(self, volume):
         self.mediaPlayer.setVolume(volume)
 
-    # def mediastate_changed(self, state):
-    #     if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
-    #         self.playBtn.setIcon(QIcon('icons/pause.png'))
-    #     else:
-    #         self.playBtn.setIcon(QIcon('icons/play.png'))
-    # def position_changed(self, position):
-    #     self.slider.setValue(position)
-    # def duration_changed(self, duration):
-    #     self.slider.setRange(0, duration)
- 
  
     def set_video_position(self, position):
         self.mediaPlayer.setPosition(position)

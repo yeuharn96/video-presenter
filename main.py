@@ -1,12 +1,15 @@
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QSpinBox, QSlider, QLabel,
-    QDoubleSpinBox, QListWidget, QListWidgetItem, QFileDialog, QMessageBox)
+    QDoubleSpinBox, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QDesktopWidget, QMenuBar,
+    QMenu, QAction, QStatusBar)
 from PyQt5 import uic, QtCore
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QRect
 import sys
 import os
 from PyQt5.QtGui import QIcon
 from video import VideoPlayer
 from monitors import monitor_areas
+from setting import Profile
+from manage_profile import ManageProfile
 
 # class VideoControl:
 #     def __init__(self, findControl):
@@ -23,7 +26,7 @@ def format_video_time(time):
 class VideoPresenter(QMainWindow):
     def __init__(self):
         super(VideoPresenter, self).__init__()
- 
+
         uic.loadUi('main.ui', self)
 
         self.setWindowTitle("PyQt5 Media Player")
@@ -36,8 +39,8 @@ class VideoPresenter(QMainWindow):
             handle_volume_changed = self.audio_update_volume
         )
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.audio_fadeout)
+        self.manage_profile = ManageProfile()
+        self.manage_profile.finished.connect(lambda result: self.manage_profile_finished())
 
 
         self.vidlist = self.findChild(QListWidget, 'vidlist')
@@ -75,6 +78,8 @@ class VideoPresenter(QMainWindow):
         self.audio_hsld_volume.valueChanged.connect(self.videoPlayer.set_volume)
         self.audio_btn_fadeout.clicked.connect(self.audio_fadeout)
         self.audio_fadeout_increment = 0
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.audio_fadeout)
 
 
 
@@ -84,12 +89,32 @@ class VideoPresenter(QMainWindow):
         self.outputadj_sb_left = self.findChild(QSpinBox, 'outputadj_sb_left')
         self.outputadj_sb_right = self.findChild(QSpinBox, 'outputadj_sb_right')
         self.outputadj_sb_bottom = self.findChild(QSpinBox, 'outputadj_sb_bottom')
-
-        self.output_btn_show.clicked.connect(self.videoPlayer.show)
+        self.output_btn_show.clicked.connect(self.output_show)
         self.output_btn_hide.clicked.connect(self.videoPlayer.hide)
+        self.outputadj_sb_top.valueChanged.connect(lambda value: self.outputadj_update_value('top', value))
+        self.outputadj_sb_left.valueChanged.connect(lambda value: self.outputadj_update_value('left', value))
+        self.outputadj_sb_right.valueChanged.connect(lambda value: self.outputadj_update_value('right', value))
+        self.outputadj_sb_bottom.valueChanged.connect(lambda value: self.outputadj_update_value('bottom', value))
+        self.outputadj_sb_top.editingFinished.connect(self.output_apply_adjustment)
+        self.outputadj_sb_left.editingFinished.connect(self.output_apply_adjustment)
+        self.outputadj_sb_right.editingFinished.connect(self.output_apply_adjustment)
+        self.outputadj_sb_bottom.editingFinished.connect(self.output_apply_adjustment)
 
+
+
+        self.menu_profile_list = self.findChild(QMenu, 'menuSwitch_Profile')
+        self.action_manage_profile = self.findChild(QAction, 'actionManage_Profile')
+        self.menu_update_profile_list()
+        self.action_manage_profile.triggered.connect(self.manage_profile_start)
+
+        self.status_bar = self.findChild(QStatusBar, 'statusbar')
+        self.status_lbl_profile = QLabel()
+        self.status_bar.addPermanentWidget(self.status_lbl_profile)
+        self.status_update_current_profile()
 
         self.show()
+
+
 
     def vidlist_add_video(self):
         folder = os.environ['USERPROFILE'] + '\\Videos'
@@ -109,12 +134,11 @@ class VideoPresenter(QMainWindow):
         self.vidlist.takeItem(video_idx)
 
     def vidlist_select_video(self):
-        video_idx = self.vidlist.currentRow()
-        current_video = self.vidlist.item(video_idx)
+        current_video = self.vidlist.currentItem()
         current_video_path = current_video.data(QtCore.Qt.UserRole)
 
         if current_video_path is None or len(current_video_path) == 0:
-            QMessageBox.critical(self, 'Empty file path', 'Please remove and add the video file to the list again.')
+            QMessageBox.critical(self, 'Empty file path', 'If you sure the file exists, please consider remove and add the video file to list again.')
         elif not os.path.exists(current_video_path):
             QMessageBox.critical(self, 'File does not exist', f'Unable to find video file {current_video_path}')
         else:
@@ -122,6 +146,7 @@ class VideoPresenter(QMainWindow):
             self.video_lbl_current_video.setText(current_video.text())
 
  
+
     def video_update_btn_play(self, is_playing):
         self.video_btn_play.setIcon(QIcon(f'icons/{"pause" if is_playing else "play"}.png'))
         
@@ -141,6 +166,8 @@ class VideoPresenter(QMainWindow):
 
     def _format_video_lbl_length(self, position):
         return f'-{format_video_time(self.video_duration - position)}/{format_video_time(self.video_duration)}'
+
+
 
     def audio_update_muted(self, muted):
         self.audio_btn_mute.setIcon(QIcon(f'icons/audio{"-mute" if muted else ""}.png'))
@@ -164,16 +191,75 @@ class VideoPresenter(QMainWindow):
         volume = max(0, volume - self.audio_fadeout_increment)
         self.videoPlayer.set_volume(round(volume))
 
+
+
+    def output_show(self):
+        self.output_apply_adjustment()
+        self.videoPlayer.show()
+
+    def outputadj_update_value(self, pos, value):
+        setattr(Profile.get_current().adjustment, pos, value)
+
+    def output_apply_adjustment(self):
+        mon = monitor_areas()
+        # print(mon)
+        if len(mon) == 1:
+            x, y, w, h = mon[0]
+        # elif int(self.setting['config'].get()) == 1:
+        #     x, y, w, h = mon[0][2], mon[0][1], mon[0][2], mon[0][3]
+        else:
+            x, y, w, h = mon[1][0], mon[1][1], mon[1][2]-mon[1][0], mon[1][3]-mon[1][1]
+        
+        def parse_value(pos):
+            try: return int(getattr(Profile.get_current().adjustment, pos))
+            except: return 0
+        # print('calc >>',x,y,w,h)
+        y += parse_value('top')
+        x += parse_value('left')
+        w += parse_value('right') - parse_value('left')
+        h += parse_value('bottom') - parse_value('top')
+        # print('calc2 >>',x,y,w,h)
+
+        # ag = QDesktopWidget().availableGeometry(self.videoPlayer)
+        # print('ag >>', ag.contains(QRect(x,y,w,h)), ag)
+
+        self.videoPlayer.setGeometry(x, y, w, h)
  
+    def manage_profile_start(self):
+        self.manage_profile.exec()
+        self.menu_update_profile_list()
+        self.status_update_current_profile()
+
+    def manage_profile_finished(self):
+        print('done')
+        # self.menu_update_profile_list()
+        # self.status_update_current_profile()
+    
+    def menu_update_profile_list(self):
+        self.menu_profile_list.clear()
+        for row, p in enumerate(Profile.profiles, 1):
+            act = self.menu_profile_list.addAction(f'{row}. {p.name}')
+            act.setData(p.id)
+
+    def status_update_current_profile(self):
+        print('main >>', Profile.get_current().name)
+        self.status_lbl_profile.setText(f'Profile: {Profile.get_current().name}')
+
+
+
     def closeEvent(self, event):
-        print('closeEvent >>', event)
-        self.videoPlayer.close()
+        # print('closeEvent >>', event)
+        Profile.save_all()
+        # self.videoPlayer.close()
+        exit()
 
  
-print('monitor_areas :>', monitor_areas())
+# print('monitor_areas :>', monitor_areas())
  
 app = QApplication(sys.argv)
 # monitor = QDesktopWidget().screenGeometry(0)
 # print('QT monitor :>',monitor.x(), monitor.y(), monitor.width(),monitor.height())
+Profile.load_all()
+Profile.set_current(0)
 window = VideoPresenter()
 sys.exit(app.exec_())
