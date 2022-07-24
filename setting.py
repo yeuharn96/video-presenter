@@ -24,6 +24,7 @@ class Adjustment:
 class Profile:
     current_id = ''
     profiles = []
+    videos = []
 
     def __init__(self, **kwargs):
         for arg in kwargs:
@@ -33,12 +34,11 @@ class Profile:
         return { **self.__dict__, 'adjustment': self.adjustment.to_dict() }
 
     @classmethod
-    def from_json(cls, data):
+    def from_json(cls, data = {}):
         '''all attributes of Profile instance are specified here only'''
         return cls(
             id = data.get('id', uuid.uuid4().hex),
             name = data.get('name', 'default'),
-            videos = data.get('videos', []),
             volume = data.get('volume', 100),
             fadeout_second = data.get('fadeout_second', 0.5),
             adjustment = Adjustment.from_json(data.get('adjustment', {}))
@@ -52,21 +52,34 @@ class Profile:
             with open(SETTING_FILE_PATH, 'r') as file:
                 try:
                     loaded = json.loads(file.read())
+
+                    if isinstance(loaded.get('videos'), list):
+                        cls.videos = [vpath for vpath in loaded['videos'] if os.path.exists(vpath)]
                     for p in loaded['profiles']:
                         cls.profiles.append(cls.from_json(p))
                 except:
                     if len(cls.profiles) == 0:
-                        cls.profiles.append(cls())
+                        cls.profiles.append(cls.from_json({}))
         else:
-            cls.profiles.append(cls())
+            cls.profiles.append(cls.from_json({}))
 
     @classmethod
     def save_all(cls):
         '''save all profiles into disk'''
         dirname = os.path.dirname(SETTING_FILE_PATH)
         Path(dirname).mkdir(parents=True, exist_ok=True)
-        with open(SETTING_FILE_PATH, 'w') as f:
-            f.write(json.dumps({ 'profiles': cls.profiles_to_save() }, indent=2))
+
+        json_to_save = { 
+            'profiles': cls.profiles_to_save(),
+            'videos': cls.videos
+        }
+        json_to_save = json.dumps(json_to_save, indent=2)
+        with open(SETTING_FILE_PATH, 'r') as f:
+            json_saved = f.read()
+
+        if json_saved != json_to_save:
+            with open(SETTING_FILE_PATH, 'w') as f:
+                f.write(json_to_save)
 
     @classmethod
     def profiles_to_save(cls):

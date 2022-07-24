@@ -27,7 +27,6 @@ class VideoPlayer(QWidget):
 
         # hide window border
         self.setWindowFlags(Qt.FramelessWindowHint)
-
  
         # self.show()
  
@@ -42,6 +41,7 @@ class VideoPlayer(QWidget):
  
         vboxLayout = QVBoxLayout()
         vboxLayout.addWidget(videowidget)
+        vboxLayout.setContentsMargins(0,0,0,0)
         self.setLayout(vboxLayout)
 
         self.mediaPlayer.setVideoOutput(videowidget)

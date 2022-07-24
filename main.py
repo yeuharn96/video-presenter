@@ -40,13 +40,17 @@ class VideoPresenter(QMainWindow):
         )
 
         self.manage_profile = ManageProfile()
-        self.manage_profile.finished.connect(lambda result: self.manage_profile_finished())
 
 
         self.vidlist = self.findChild(QListWidget, 'vidlist')
         self.vidlist_btn_add = self.findChild(QPushButton, 'vidlist_btn_add')
         self.vidlist_btn_delete = self.findChild(QPushButton, 'vidlist_btn_delete')
         self.vidlist_btn_select = self.findChild(QPushButton, 'vidlist_btn_select')
+
+        for v in Profile.videos:
+            item = QListWidgetItem(os.path.basename(v))
+            item.setData(QtCore.Qt.UserRole, v)
+            self.vidlist.addItem(item)
 
         self.vidlist_btn_add.clicked.connect(self.vidlist_add_video)
         self.vidlist_btn_delete.clicked.connect(self.vidlist_delete_video)
@@ -77,6 +81,7 @@ class VideoPresenter(QMainWindow):
         self.audio_btn_mute.clicked.connect(self.videoPlayer.toggle_mute)
         self.audio_hsld_volume.valueChanged.connect(self.videoPlayer.set_volume)
         self.audio_btn_fadeout.clicked.connect(self.audio_fadeout)
+        self.audio_sb_fadeout.valueChanged.connect(self.audio_update_fadeout_second)
         self.audio_fadeout_increment = 0
         self.timer = QTimer()
         self.timer.timeout.connect(self.audio_fadeout)
@@ -105,7 +110,7 @@ class VideoPresenter(QMainWindow):
         self.menu_profile_list = self.findChild(QMenu, 'menuSwitch_Profile')
         self.action_manage_profile = self.findChild(QAction, 'actionManage_Profile')
         self.menu_update_profile_list()
-        self.action_manage_profile.triggered.connect(self.manage_profile_start)
+        self.action_manage_profile.triggered.connect(self.prompt_manage_profile)
 
         self.status_bar = self.findChild(QStatusBar, 'statusbar')
         self.status_lbl_profile = QLabel()
@@ -118,12 +123,13 @@ class VideoPresenter(QMainWindow):
 
     def vidlist_add_video(self):
         folder = os.environ['USERPROFILE'] + '\\Videos'
-        fname, _ = QFileDialog.getOpenFileName(self, 'Select a video', folder, 'All Files (*);;MP4 Files (*.mp4)', 'MP4 Files (*.mp4)')
-        print(fname)
-        if len(fname) > 0:
-            item = QListWidgetItem(os.path.basename(fname))
-            item.setData(QtCore.Qt.UserRole, fname)
+        fpath, _ = QFileDialog.getOpenFileName(self, 'Select a video', folder, 'All Files (*);;MP4 Files (*.mp4)', 'MP4 Files (*.mp4)')
+        print(fpath)
+        if len(fpath) > 0:
+            item = QListWidgetItem(os.path.basename(fpath))
+            item.setData(QtCore.Qt.UserRole, fpath)
             self.vidlist.addItem(item)
+            Profile.videos.append(fpath)
             if self.vidlist.count() == 1:
                 self.vidlist.setCurrentRow(0)
                 self.vidlist_select_video()
@@ -132,6 +138,7 @@ class VideoPresenter(QMainWindow):
     def vidlist_delete_video(self):
         video_idx = self.vidlist.currentRow()
         self.vidlist.takeItem(video_idx)
+        del Profile.videos[video_idx]
 
     def vidlist_select_video(self):
         current_video = self.vidlist.currentItem()
@@ -145,6 +152,7 @@ class VideoPresenter(QMainWindow):
             self.videoPlayer.set_file(current_video_path)
             self.video_lbl_current_video.setText(current_video.text())
 
+    # def _vidlist_add_videos(self, videos):
  
 
     def video_update_btn_play(self, is_playing):
@@ -175,6 +183,10 @@ class VideoPresenter(QMainWindow):
     def audio_update_volume(self, volume):
         self.audio_hsld_volume.setValue(volume)
         self.audio_lbl_volume.setText(f'{volume}%')
+        Profile.get_current().volume = volume
+
+    def audio_update_fadeout_second(self, s):
+        Profile.get_current().fadeout_second = s
 
     def audio_fadeout(self):
         fadeout_precision = 10 # in milliseconds
@@ -225,25 +237,34 @@ class VideoPresenter(QMainWindow):
 
         self.videoPlayer.setGeometry(x, y, w, h)
  
-    def manage_profile_start(self):
+    def prompt_manage_profile(self):
         self.manage_profile.exec()
         self.menu_update_profile_list()
         self.status_update_current_profile()
 
-    def manage_profile_finished(self):
-        print('done')
-        # self.menu_update_profile_list()
-        # self.status_update_current_profile()
-    
     def menu_update_profile_list(self):
+        def _action_switch_profile(id):
+            Profile.set_current(id)
+            self.status_update_current_profile()
+
         self.menu_profile_list.clear()
         for row, p in enumerate(Profile.profiles, 1):
             act = self.menu_profile_list.addAction(f'{row}. {p.name}')
             act.setData(p.id)
+            act.triggered.connect(lambda _, id=p.id: _action_switch_profile(id))
 
     def status_update_current_profile(self):
-        print('main >>', Profile.get_current().name)
-        self.status_lbl_profile.setText(f'Profile: {Profile.get_current().name}')
+        # print('main >>', Profile.get_current().name)
+        profile = Profile.get_current()
+        self.status_lbl_profile.setText(f'Profile: {profile.name}')
+        # apply profile values
+        self.outputadj_sb_top.setValue(profile.adjustment.top)
+        self.outputadj_sb_bottom.setValue(profile.adjustment.bottom)
+        self.outputadj_sb_left.setValue(profile.adjustment.left)
+        self.outputadj_sb_right.setValue(profile.adjustment.right)
+        self.audio_hsld_volume.setValue(profile.volume)
+        self.audio_sb_fadeout.setValue(profile.fadeout_second)
+        
 
 
 
