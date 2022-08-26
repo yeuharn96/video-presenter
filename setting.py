@@ -2,24 +2,37 @@ import os
 import json
 import uuid
 from pathlib import Path
+import subprocess
 
 SETTING_FILE_PATH = os.getenv('LOCALAPPDATA') + r'\pptx-py\video-presenter.json'
 
-class Adjustment:
+class JsonWrapper:
+    def to_dict(self):
+        return self.__dict__
+
+
+class Adjustment(JsonWrapper):
     def __init__(self, top, bottom, left, right):
+        JsonWrapper.__init__(self)
         self.top = top
         self.bottom = bottom
         self.left = left
         self.right = right
-    
-    def to_dict(self):
-        return self.__dict__
-    
+
     @classmethod
     def from_json(cls, data):
         return cls(data.get('top', 0), data.get('bottom', 0), data.get('left', 0), data.get('right', 0))
 
-    
+class PlayBack(JsonWrapper):
+    def __init__(self, loop, next):
+        JsonWrapper.__init__(self)
+        self.loop = loop
+        self.next = next
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(data.get('loop', 0), data.get('next', 0))
+
 
 class Profile:
     current_id = ''
@@ -31,7 +44,7 @@ class Profile:
             self.__dict__[arg] = kwargs[arg]
     
     def to_dict(self):
-        return { **self.__dict__, 'adjustment': self.adjustment.to_dict() }
+        return { **self.__dict__, 'adjustment': self.adjustment.to_dict(), 'playback': self.playback.to_dict() }
 
     @classmethod
     def from_json(cls, data = {}):
@@ -41,7 +54,8 @@ class Profile:
             name = data.get('name', 'default'),
             volume = data.get('volume', 100),
             fadeout_second = data.get('fadeout_second', 0.5),
-            adjustment = Adjustment.from_json(data.get('adjustment', {}))
+            adjustment = Adjustment.from_json(data.get('adjustment', {})),
+            playback = PlayBack.from_json(data.get('playback', {}))
         )
 
 
@@ -110,4 +124,10 @@ class Profile:
     @classmethod
     def set_current(cls, id):
         cls.current_id = id
+
+
+    @staticmethod
+    def show_save_location():
+        subprocess.Popen('explorer /select,{}'.format(SETTING_FILE_PATH))
+
 

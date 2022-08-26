@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QSpinBox, QSlider, QLabel,
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QCheckBox, QSpinBox, QSlider, QLabel,
     QDoubleSpinBox, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QDesktopWidget, QMenuBar,
     QMenu, QAction, QStatusBar)
 from PyQt5 import uic, QtCore
@@ -27,17 +27,17 @@ class VideoPresenter(QMainWindow):
     def __init__(self):
         super(VideoPresenter, self).__init__()
 
-        uic.loadUi('main.ui', self)
+        uic.loadUi('main-1.ui', self)
 
         self.setWindowTitle("PyQt5 Media Player")
         # self.setWindowIcon(QIcon('player.png'))
-        self.videoPlayer = VideoPlayer(
-            handle_mediastate_changed = self.video_update_btn_play,
-            handle_position_changed = self.video_update_current_position,
-            handle_duration_changed = self.video_update_duration,
-            handle_muted_changed = self.audio_update_muted,
-            handle_volume_changed = self.audio_update_volume
-        )
+        self.videoPlayer = VideoPlayer()
+        self.videoPlayer.mediastate_changed.connect(self.handle_mediastate_changed)
+        self.videoPlayer.position_changed.connect(self.video_update_current_position)
+        self.videoPlayer.duration_changed.connect(self.video_update_duration)
+        self.videoPlayer.muted_changed.connect(self.audio_update_muted)
+        self.videoPlayer.volume_changed.connect(self.audio_update_volume)
+        self.videoPlayer.playlist_index_changed.connect(self.video_update_lbl)
 
         self.manage_profile = ManageProfile()
 
@@ -51,13 +51,16 @@ class VideoPresenter(QMainWindow):
             item = QListWidgetItem(os.path.basename(v))
             item.setData(QtCore.Qt.UserRole, v)
             self.vidlist.addItem(item)
+            self.videoPlayer.add_media(v)
 
+        self.vidlist.itemDoubleClicked.connect(self.vidlist_select_video)
         self.vidlist_btn_add.clicked.connect(self.vidlist_add_video)
         self.vidlist_btn_delete.clicked.connect(self.vidlist_delete_video)
         self.vidlist_btn_select.clicked.connect(self.vidlist_select_video)
 
 
 
+        self.video_lbl_play_state = self.findChild(QLabel, 'video_lbl_play_state')
         self.video_lbl_current_video = self.findChild(QLabel, 'video_lbl_current_video')
         self.video_btn_play = self.findChild(QPushButton, 'video_btn_play')
         self.video_btn_stop = self.findChild(QPushButton, 'video_btn_stop')
@@ -65,21 +68,31 @@ class VideoPresenter(QMainWindow):
         self.video_lbl_current_time = self.findChild(QLabel, 'video_lbl_current_time')
         self.video_lbl_length = self.findChild(QLabel, 'video_lbl_length')
 
+        self.video_btn_play.setEnabled(False)
+        self.video_btn_stop.setEnabled(False)
         self.video_btn_play.clicked.connect(self.videoPlayer.play_video)
         self.video_btn_stop.clicked.connect(self.videoPlayer.stop_video)
         self.video_hsld.sliderMoved.connect(self.videoPlayer.set_video_position)
         self.video_duration = 0
 
 
+        CheckState = QtCore.Qt.CheckState
+        self.playback_cb_loop = self.findChild(QCheckBox, 'playback_cb_loop')
+        self.playback_cb_next = self.findChild(QCheckBox, 'playback_cb_next')
+        self.playback_cb_loop.stateChanged.connect(self.playback_update_loop)
+        self.playback_cb_next.stateChanged.connect(self.playback_update_next)
+        self.playback_cb_loop.setCheckState(CheckState.Checked if Profile.get_current().playback.loop == 1 else CheckState.Unchecked)
+        self.playback_cb_next.setCheckState(CheckState.Checked if Profile.get_current().playback.next == 1 else CheckState.Unchecked)
 
-        self.audio_hsld_volume = self.findChild(QSlider, 'audio_hsld_volume')
+
+        self.audio_sldr_volume = self.findChild(QSlider, 'audio_sldr_volume')
         self.audio_btn_mute = self.findChild(QPushButton, 'audio_btn_mute')
         self.audio_lbl_volume = self.findChild(QLabel, 'audio_lbl_volume')
         self.audio_btn_fadeout = self.findChild(QPushButton, 'audio_btn_fadeout')
         self.audio_sb_fadeout = self.findChild(QDoubleSpinBox, 'audio_sb_fadeout')
 
         self.audio_btn_mute.clicked.connect(self.videoPlayer.toggle_mute)
-        self.audio_hsld_volume.valueChanged.connect(self.videoPlayer.set_volume)
+        self.audio_sldr_volume.valueChanged.connect(self.videoPlayer.set_volume)
         self.audio_btn_fadeout.clicked.connect(self.audio_fadeout)
         self.audio_sb_fadeout.valueChanged.connect(self.audio_update_fadeout_second)
         self.audio_fadeout_increment = 0
@@ -95,7 +108,7 @@ class VideoPresenter(QMainWindow):
         self.outputadj_sb_right = self.findChild(QSpinBox, 'outputadj_sb_right')
         self.outputadj_sb_bottom = self.findChild(QSpinBox, 'outputadj_sb_bottom')
         self.output_btn_show.clicked.connect(self.output_show)
-        self.output_btn_hide.clicked.connect(self.videoPlayer.hide)
+        self.output_btn_hide.clicked.connect(self.output_hide)
         self.outputadj_sb_top.valueChanged.connect(lambda value: self.outputadj_update_value('top', value))
         self.outputadj_sb_left.valueChanged.connect(lambda value: self.outputadj_update_value('left', value))
         self.outputadj_sb_right.valueChanged.connect(lambda value: self.outputadj_update_value('right', value))
@@ -111,6 +124,9 @@ class VideoPresenter(QMainWindow):
         self.action_manage_profile = self.findChild(QAction, 'actionManage_Profile')
         self.menu_update_profile_list()
         self.action_manage_profile.triggered.connect(self.prompt_manage_profile)
+
+        self.action_show_setting_folder = self.findChild(QAction, 'actionShow_Setting_Folder')
+        self.action_show_setting_folder.triggered.connect(Profile.show_save_location)
 
         self.status_bar = self.findChild(QStatusBar, 'statusbar')
         self.status_lbl_profile = QLabel()
@@ -129,6 +145,7 @@ class VideoPresenter(QMainWindow):
             item = QListWidgetItem(os.path.basename(fpath))
             item.setData(QtCore.Qt.UserRole, fpath)
             self.vidlist.addItem(item)
+            self.videoPlayer.add_media(fpath)
             Profile.videos.append(fpath)
             if self.vidlist.count() == 1:
                 self.vidlist.setCurrentRow(0)
@@ -138,6 +155,7 @@ class VideoPresenter(QMainWindow):
     def vidlist_delete_video(self):
         video_idx = self.vidlist.currentRow()
         self.vidlist.takeItem(video_idx)
+        self.videoPlayer.remove_media(video_idx)
         del Profile.videos[video_idx]
 
     def vidlist_select_video(self):
@@ -149,13 +167,18 @@ class VideoPresenter(QMainWindow):
         elif not os.path.exists(current_video_path):
             QMessageBox.critical(self, 'File does not exist', f'Unable to find video file {current_video_path}')
         else:
-            self.videoPlayer.set_file(current_video_path)
+            self.videoPlayer.select_media(self.vidlist.currentRow())
+            # self.videoPlayer.set_file(current_video_path)
             self.video_lbl_current_video.setText(current_video.text())
 
     # def _vidlist_add_videos(self, videos):
  
 
-    def video_update_btn_play(self, is_playing):
+    def handle_mediastate_changed(self, is_playing, is_stopped):
+        if is_playing: self.video_lbl_play_state.setText('Now Playing:')
+        elif is_stopped: self.video_lbl_play_state.setText('Stopped:')
+        else: self.video_lbl_play_state.setText('Paused:')
+
         self.video_btn_play.setIcon(QIcon(f'icons/{"pause" if is_playing else "play"}.png'))
         
     def video_update_current_position(self, position):
@@ -172,6 +195,11 @@ class VideoPresenter(QMainWindow):
         self.video_duration = duration
         self.video_lbl_length.setText(self._format_video_lbl_length(0))
 
+    def video_update_lbl(self, idx):
+        if idx > -1:
+            self.vidlist.setCurrentRow(idx)
+            self.video_lbl_current_video.setText(self.vidlist.currentItem().text())
+
     def _format_video_lbl_length(self, position):
         return f'-{format_video_time(self.video_duration - position)}/{format_video_time(self.video_duration)}'
 
@@ -181,7 +209,7 @@ class VideoPresenter(QMainWindow):
         self.audio_btn_mute.setIcon(QIcon(f'icons/audio{"-mute" if muted else ""}.png'))
 
     def audio_update_volume(self, volume):
-        self.audio_hsld_volume.setValue(volume)
+        self.audio_sldr_volume.setValue(volume)
         self.audio_lbl_volume.setText(f'{volume}%')
         Profile.get_current().volume = volume
 
@@ -190,24 +218,45 @@ class VideoPresenter(QMainWindow):
 
     def audio_fadeout(self):
         fadeout_precision = 10 # in milliseconds
-        
+
         volume = self.videoPlayer.volume()
         if not self.timer.isActive():
+            self.fade_volume = volume
             second = round(self.audio_sb_fadeout.value() * 1000) # in milliseconds
             self.audio_fadeout_increment = volume / (second / fadeout_precision)
             self.timer.start(fadeout_precision)
-        elif volume == 0:
+        elif volume <= 0:
             self.timer.stop()
             return
         # print('fadeout', volume)
-        volume = max(0, volume - self.audio_fadeout_increment)
-        self.videoPlayer.set_volume(round(volume))
+        self.fade_volume -= self.audio_fadeout_increment
+        self.videoPlayer.set_volume(round(self.fade_volume))
+
+
+
+    def playback_update_loop(self, state):
+        checked = state == QtCore.Qt.CheckState.Checked
+        self.videoPlayer.set_play_loop(checked)
+        Profile.get_current().playback.loop = int(checked)
+
+    def playback_update_next(self, state):
+        checked = state == QtCore.Qt.CheckState.Checked
+        self.videoPlayer.set_play_next(checked)
+        Profile.get_current().playback.next = int(checked)
 
 
 
     def output_show(self):
         self.output_apply_adjustment()
         self.videoPlayer.show()
+        self.video_btn_play.setEnabled(True)
+        self.video_btn_stop.setEnabled(True)
+    
+    def output_hide(self):
+        self.videoPlayer.hide()
+        self.videoPlayer.mediaPlayer.pause()
+        self.video_btn_play.setEnabled(False)
+        self.video_btn_stop.setEnabled(False)
 
     def outputadj_update_value(self, pos, value):
         setattr(Profile.get_current().adjustment, pos, value)
@@ -230,7 +279,7 @@ class VideoPresenter(QMainWindow):
         x += parse_value('left')
         w += parse_value('right') - parse_value('left')
         h += parse_value('bottom') - parse_value('top')
-        # print('calc2 >>',x,y,w,h)
+        # print('calc2 >>',x,y,w,h, self.videoPlayer.frameGeometry().width(), self.videoPlayer.frameGeometry().height())
 
         # ag = QDesktopWidget().availableGeometry(self.videoPlayer)
         # print('ag >>', ag.contains(QRect(x,y,w,h)), ag)
@@ -262,8 +311,11 @@ class VideoPresenter(QMainWindow):
         self.outputadj_sb_bottom.setValue(profile.adjustment.bottom)
         self.outputadj_sb_left.setValue(profile.adjustment.left)
         self.outputadj_sb_right.setValue(profile.adjustment.right)
-        self.audio_hsld_volume.setValue(profile.volume)
+        self.audio_sldr_volume.setValue(profile.volume)
         self.audio_sb_fadeout.setValue(profile.fadeout_second)
+        CheckState = QtCore.Qt.CheckState
+        self.playback_cb_loop.setCheckState(CheckState.Checked if Profile.get_current().playback.loop == 1 else CheckState.Unchecked)
+        self.playback_cb_next.setCheckState(CheckState.Checked if Profile.get_current().playback.next == 1 else CheckState.Unchecked)
         
 
 
@@ -275,12 +327,14 @@ class VideoPresenter(QMainWindow):
         exit()
 
  
-# print('monitor_areas :>', monitor_areas())
- 
 app = QApplication(sys.argv)
-# monitor = QDesktopWidget().screenGeometry(0)
-# print('QT monitor :>',monitor.x(), monitor.y(), monitor.width(),monitor.height())
-Profile.load_all()
-Profile.set_current(0)
-window = VideoPresenter()
-sys.exit(app.exec_())
+try:
+    # monitor = QDesktopWidget().screenGeometry(0)
+    # print('QT monitor :>',monitor.x(), monitor.y(), monitor.width(),monitor.height())
+    Profile.load_all()
+    Profile.set_current(0)
+    window = VideoPresenter()
+    sys.exit(app.exec_())
+except Exception as e:
+    w = QWidget()
+    QMessageBox.critical(w, 'An unexpected error occurred', str(e))

@@ -1,26 +1,29 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, \
     QSlider, QStyle, QSizePolicy, QFileDialog, QDesktopWidget
 import sys
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QBuffer
 from monitors import monitor_areas
+from setting import Profile
  
  
 class VideoPlayer(QWidget):
-    def __init__(self, handle_mediastate_changed, handle_position_changed, handle_duration_changed,
-        handle_muted_changed, handle_volume_changed):
+    mediastate_changed = pyqtSignal(bool, bool)
+    position_changed = pyqtSignal(int)
+    duration_changed = pyqtSignal(int)
+    muted_changed = pyqtSignal(bool)
+    volume_changed = pyqtSignal(int)
+
+    playlist_index_changed = pyqtSignal(int)
+
+    def __init__(self):
         super().__init__()
 
-        self.video_path = ''
-        self.handle_mediastate_changed = handle_mediastate_changed
-        self.handle_position_changed = handle_position_changed
-        self.handle_duration_changed = handle_duration_changed
-        self.handle_muted_changed = handle_muted_changed
-        self.handle_volume_changed = handle_volume_changed
-
-        self.setGeometry(350, 100, 700, 500)
+        p = self.palette()
+        p.setColor(self.backgroundRole(), Qt.black)
+        self.setPalette(p)
         # self.setWindowIcon(QIcon('player.png'))
  
         self.init_ui()
@@ -32,10 +35,17 @@ class VideoPlayer(QWidget):
  
  
     def init_ui(self):
-        #create media player object
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface, notifyInterval=100)
+        self.mediaPlayer.error.connect(self.handle_errors)
+        
+        self.playlist = QMediaPlaylist()
+        self.playlist.setPlaybackMode(QMediaPlaylist.CurrentItemOnce)
+        self.playlist.currentIndexChanged.connect(self.playlist_index_changed.emit)
+
+        self.mediaPlayer.setPlaylist(self.playlist)
+        self._playback_loop = False
+        self._playback_next = False
  
-        #create videowidget object
         videowidget = QVideoWidget()
         videowidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
  
@@ -47,22 +57,57 @@ class VideoPlayer(QWidget):
         self.mediaPlayer.setVideoOutput(videowidget)
  
         #media player signals
-        self.mediaPlayer.stateChanged.connect(lambda state: self.handle_mediastate_changed(state == QMediaPlayer.PlayingState))
-        self.mediaPlayer.positionChanged.connect(self.handle_position_changed)
-        self.mediaPlayer.durationChanged.connect(self.handle_duration_changed)
-        self.mediaPlayer.mutedChanged.connect(self.handle_muted_changed)
-        self.mediaPlayer.volumeChanged.connect(self.handle_volume_changed)
+        self.mediaPlayer.stateChanged.connect(lambda state: self.mediastate_changed.emit(state == QMediaPlayer.PlayingState, state == QMediaPlayer.StoppedState))
+        self.mediaPlayer.positionChanged.connect(self.position_changed.emit)
+        self.mediaPlayer.durationChanged.connect(self.duration_changed.emit)
+        self.mediaPlayer.mutedChanged.connect(self.muted_changed.emit)
+        self.mediaPlayer.volumeChanged.connect(self.volume_changed.emit)
  
- 
-    def set_file(self, path):
-        if path != '':
-            self.video_path = path
-            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(path)))
- 
- 
+
+    def add_media(self, path):
+        if isinstance(path, str): path = [path]
+        if not isinstance(path, list): return
+        for p in path:
+            self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(p)))
+    
+    def remove_media(self, idx):
+        self.playlist.removeMedia(idx)
+    
+    def select_media(self, idx):
+        self.playlist.setCurrentIndex(idx)
+        # file = QFile(Profile.videos[0])
+        # file.open(QIODevice.ReadOnly)
+        # ba = QByteArray()
+        # print(len(ba))
+        # ba.append(file.readAll())
+        # buffer = QBuffer()
+        # buffer.setData(ba)
+        # buffer.open(QIODevice.ReadOnly)
+        # buffer.reset()
+        # self.mediaPlayer.setMedia(QMediaContent(), buffer)
+        # print(len(ba))
+
+    def set_play_loop(self, loop):
+        self._playback_loop = loop
+        self._update_playback_mode()
+
+    def set_play_next(self, next):
+        self._playback_next = next
+        self._update_playback_mode()
+
+    def _update_playback_mode(self):
+        mode = QMediaPlaylist.CurrentItemOnce
+        if self._playback_loop and self._playback_next: 
+            mode = QMediaPlaylist.Loop
+        elif self._playback_loop: 
+            mode = QMediaPlaylist.CurrentItemInLoop
+        elif self._playback_next: 
+            mode = QMediaPlaylist.Sequential
+
+        self.playlist.setPlaybackMode(mode)
+
     def play_video(self):
-        # print('play video', self.video_path)
-        if len(self.video_path) == 0: return
+        if self.playlist.mediaCount() == 0: return
 
         try:
             if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
@@ -91,8 +136,7 @@ class VideoPlayer(QWidget):
  
  
     def handle_errors(self):
-        self.playBtn.setEnabled(False)
-        self.label.setText("Error: " + self.mediaPlayer.errorString())
+        print("Error: " + self.mediaPlayer.errorString())
  
  
  
