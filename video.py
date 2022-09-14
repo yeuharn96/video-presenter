@@ -75,17 +75,6 @@ class VideoPlayer(QWidget):
     
     def select_media(self, idx):
         self.playlist.setCurrentIndex(idx)
-        # file = QFile(Profile.videos[0])
-        # file.open(QIODevice.ReadOnly)
-        # ba = QByteArray()
-        # print(len(ba))
-        # ba.append(file.readAll())
-        # buffer = QBuffer()
-        # buffer.setData(ba)
-        # buffer.open(QIODevice.ReadOnly)
-        # buffer.reset()
-        # self.mediaPlayer.setMedia(QMediaContent(), buffer)
-        # print(len(ba))
 
     def set_play_loop(self, loop):
         self._playback_loop = loop
@@ -109,13 +98,10 @@ class VideoPlayer(QWidget):
     def play_video(self):
         if self.playlist.mediaCount() == 0: return
 
-        try:
-            if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
-                self.mediaPlayer.pause()
-            else:
-                self.mediaPlayer.play()
-        except:
-            self.handle_errors()
+        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
+            self.mediaPlayer.pause()
+        else:
+            self.mediaPlayer.play()
     
     def stop_video(self):
         self.mediaPlayer.stop()
@@ -134,7 +120,14 @@ class VideoPlayer(QWidget):
     def set_video_position(self, position):
         self.mediaPlayer.setPosition(position)
  
- 
+    def skip_video_seconds(self, seconds):
+        skip_to_position = self.mediaPlayer.position() + (seconds * 1000)
+        self.mediaPlayer.setPosition(skip_to_position)
+    
+    def set_video_next(self, next=True):
+        idx = self.playlist.nextIndex() if next else self.playlist.previousIndex()
+        if idx > -1: self.playlist.setCurrentIndex(idx)
+
     def handle_errors(self):
         print("Error: " + self.mediaPlayer.errorString())
  

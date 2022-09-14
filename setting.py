@@ -55,7 +55,8 @@ class Profile:
             volume = data.get('volume', 100),
             fadeout_second = data.get('fadeout_second', 0.5),
             adjustment = Adjustment.from_json(data.get('adjustment', {})),
-            playback = PlayBack.from_json(data.get('playback', {}))
+            playback = PlayBack.from_json(data.get('playback', {})),
+            skip_step = data.get('skip_step', 1)
         )
 
 

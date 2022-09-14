@@ -1,23 +1,21 @@
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QCheckBox, QSpinBox, QSlider, QLabel,
     QDoubleSpinBox, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QDesktopWidget, QMenuBar,
-    QMenu, QAction, QStatusBar)
+    QMenu, QAction, QStatusBar, QToolTip)
 from PyQt5 import uic, QtCore
 from PyQt5.QtCore import QTimer, QRect
 import sys
 import os
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCursor
 from video import VideoPlayer
 from monitors import monitor_areas
 from setting import Profile
 from manage_profile import ManageProfile
 
-# class VideoControl:
-#     def __init__(self, findControl):
 
 def format_video_time(time):
-    hh = round(time / 3600)
-    mm = round(time / 60 % 60)
-    ss = round(time % 60)
+    hh = time // 3600
+    mm = time % 3600 // 60
+    ss = time % 60
 
     hh = f'{hh:02}:' if hh > 0 else ''
     return hh + f'{mm:02}:{ss:02}'
@@ -27,7 +25,7 @@ class VideoPresenter(QMainWindow):
     def __init__(self):
         super(VideoPresenter, self).__init__()
 
-        uic.loadUi('main-1.ui', self)
+        uic.loadUi('main.ui', self)
 
         self.setWindowTitle("PyQt5 Media Player")
         # self.setWindowIcon(QIcon('player.png'))
@@ -67,12 +65,22 @@ class VideoPresenter(QMainWindow):
         self.video_hsld = self.findChild(QSlider, 'video_hsld')
         self.video_lbl_current_time = self.findChild(QLabel, 'video_lbl_current_time')
         self.video_lbl_length = self.findChild(QLabel, 'video_lbl_length')
+        self.video_sb_step = self.findChild(QSpinBox, 'video_sb_step')
+        self.video_btn_backward = self.findChild(QPushButton, 'video_btn_backward')
+        self.video_btn_forward = self.findChild(QPushButton, 'video_btn_forward')
+        self.video_btn_prev = self.findChild(QPushButton, 'video_btn_prev')
+        self.video_btn_next = self.findChild(QPushButton, 'video_btn_next')
 
         self.video_btn_play.setEnabled(False)
         self.video_btn_stop.setEnabled(False)
         self.video_btn_play.clicked.connect(self.videoPlayer.play_video)
         self.video_btn_stop.clicked.connect(self.videoPlayer.stop_video)
-        self.video_hsld.sliderMoved.connect(self.videoPlayer.set_video_position)
+        self.video_hsld.sliderMoved.connect(self.handle_video_hsld_moved)
+        self.video_sb_step.valueChanged.connect(self.video_update_skip_step)
+        self.video_btn_backward.clicked.connect(lambda: self.videoPlayer.skip_video_seconds(Profile.get_current().skip_step * -1))
+        self.video_btn_forward.clicked.connect(lambda: self.videoPlayer.skip_video_seconds(Profile.get_current().skip_step))
+        self.video_btn_prev.clicked.connect(lambda: self.videoPlayer.set_video_next(False))
+        self.video_btn_next.clicked.connect(lambda: self.videoPlayer.set_video_next(True))
         self.video_duration = 0
 
 
@@ -87,12 +95,13 @@ class VideoPresenter(QMainWindow):
 
         self.audio_sldr_volume = self.findChild(QSlider, 'audio_sldr_volume')
         self.audio_btn_mute = self.findChild(QPushButton, 'audio_btn_mute')
-        self.audio_lbl_volume = self.findChild(QLabel, 'audio_lbl_volume')
+        self.audio_sb_volume = self.findChild(QSpinBox, 'audio_sb_volume')
         self.audio_btn_fadeout = self.findChild(QPushButton, 'audio_btn_fadeout')
         self.audio_sb_fadeout = self.findChild(QDoubleSpinBox, 'audio_sb_fadeout')
 
-        self.audio_btn_mute.clicked.connect(self.videoPlayer.toggle_mute)
         self.audio_sldr_volume.valueChanged.connect(self.videoPlayer.set_volume)
+        self.audio_btn_mute.clicked.connect(self.videoPlayer.toggle_mute)
+        self.audio_sb_volume.editingFinished.connect(lambda: self.videoPlayer.set_volume(self.audio_sb_volume.value()))
         self.audio_btn_fadeout.clicked.connect(self.audio_fadeout)
         self.audio_sb_fadeout.valueChanged.connect(self.audio_update_fadeout_second)
         self.audio_fadeout_increment = 0
@@ -181,6 +190,10 @@ class VideoPresenter(QMainWindow):
 
         self.video_btn_play.setIcon(QIcon(f'icons/{"pause" if is_playing else "play"}.png'))
         
+    def handle_video_hsld_moved(self, position):
+        QToolTip.showText(QCursor.pos(), format_video_time(position // 1000), self)
+        self.videoPlayer.set_video_position(position)
+
     def video_update_current_position(self, position):
         self.video_hsld.setValue(position)
 
@@ -203,6 +216,8 @@ class VideoPresenter(QMainWindow):
     def _format_video_lbl_length(self, position):
         return f'-{format_video_time(self.video_duration - position)}/{format_video_time(self.video_duration)}'
 
+    def video_update_skip_step(self, value):
+        Profile.get_current().skip_step = value
 
 
     def audio_update_muted(self, muted):
@@ -210,7 +225,7 @@ class VideoPresenter(QMainWindow):
 
     def audio_update_volume(self, volume):
         self.audio_sldr_volume.setValue(volume)
-        self.audio_lbl_volume.setText(f'{volume}%')
+        self.audio_sb_volume.setValue(volume)
         Profile.get_current().volume = volume
 
     def audio_update_fadeout_second(self, s):
@@ -219,7 +234,7 @@ class VideoPresenter(QMainWindow):
     def audio_fadeout(self):
         fadeout_precision = 10 # in milliseconds
 
-        volume = self.videoPlayer.volume()
+        volume = self.audio_sldr_volume.value()
         if not self.timer.isActive():
             self.fade_volume = volume
             second = round(self.audio_sb_fadeout.value() * 1000) # in milliseconds
@@ -231,7 +246,6 @@ class VideoPresenter(QMainWindow):
         # print('fadeout', volume)
         self.fade_volume -= self.audio_fadeout_increment
         self.videoPlayer.set_volume(round(self.fade_volume))
-
 
 
     def playback_update_loop(self, state):
