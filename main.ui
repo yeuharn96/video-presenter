@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>650</width>
-    <height>620</height>
+    <height>630</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>650</width>
-    <height>620</height>
+    <height>630</height>
    </size>
   </property>
   <property name="font">
@@ -72,6 +72,9 @@
          <pointsize>24</pointsize>
         </font>
        </property>
+       <property name="statusTip">
+        <string>Show video</string>
+       </property>
        <property name="text">
         <string>Show</string>
        </property>
@@ -89,6 +92,9 @@
         <font>
          <pointsize>24</pointsize>
         </font>
+       </property>
+       <property name="statusTip">
+        <string>Hide video</string>
        </property>
        <property name="text">
         <string>Hide</string>
@@ -111,6 +117,9 @@
       <family>Verdana</family>
       <pointsize>14</pointsize>
      </font>
+    </property>
+    <property name="statusTip">
+     <string>Adjust video window size</string>
     </property>
     <property name="styleSheet">
      <string notr="true">QGroupBox{
@@ -166,6 +175,12 @@ left: 10px;
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
+        </property>
         <property name="minimum">
          <number>-9999</number>
         </property>
@@ -180,6 +195,12 @@ left: 10px;
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
         </property>
         <property name="minimum">
          <number>-9999</number>
@@ -259,6 +280,12 @@ left: 10px;
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
+        </property>
         <property name="minimum">
          <number>-9999</number>
         </property>
@@ -273,6 +300,12 @@ left: 10px;
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
         </property>
         <property name="minimum">
          <number>-9999</number>
@@ -297,6 +330,9 @@ left: 10px;
     <layout class="QHBoxLayout" name="horizontalLayout_4">
      <item>
       <widget class="QPushButton" name="video_btn_play">
+       <property name="statusTip">
+        <string>Play / Pause</string>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -314,6 +350,9 @@ left: 10px;
      </item>
      <item>
       <widget class="QPushButton" name="video_btn_stop">
+       <property name="statusTip">
+        <string>Stop</string>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -330,7 +369,7 @@ left: 10px;
       </widget>
      </item>
      <item>
-      <widget class="QSlider" name="video_hsld">
+      <widget class="QSlider" name="video_sldr">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
@@ -361,6 +400,9 @@ left: 10px;
       <family>Verdana</family>
       <pointsize>14</pointsize>
      </font>
+    </property>
+    <property name="statusTip">
+     <string>Set video playback mode</string>
     </property>
     <property name="styleSheet">
      <string notr="true">QGroupBox{
@@ -446,6 +488,12 @@ left: 8px;
          <underline>false</underline>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Add video</string>
+       </property>
+       <property name="statusTip">
+        <string>Add video</string>
+       </property>
        <property name="layoutDirection">
         <enum>Qt::LeftToRight</enum>
        </property>
@@ -471,6 +519,12 @@ left: 8px;
          <family>Comic Sans MS</family>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Remove video</string>
+       </property>
+       <property name="statusTip">
+        <string>Remove video</string>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -488,6 +542,12 @@ left: 8px;
      </item>
      <item>
       <widget class="QPushButton" name="vidlist_btn_select">
+       <property name="toolTip">
+        <string>Select video</string>
+       </property>
+       <property name="statusTip">
+        <string>Select video</string>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -547,6 +607,9 @@ left: 8px;
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="statusTip">
+        <string>Volume</string>
+       </property>
        <property name="maximum">
         <number>100</number>
        </property>
@@ -575,7 +638,10 @@ left: 8px;
           </sizepolicy>
          </property>
          <property name="toolTip">
-          <string>mute/unmute</string>
+          <string>Toggle mute</string>
+         </property>
+         <property name="statusTip">
+          <string>Toggle mute</string>
          </property>
          <property name="text">
           <string/>
@@ -594,6 +660,18 @@ left: 8px;
        </item>
        <item>
         <widget class="QSpinBox" name="audio_sb_volume">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="statusTip">
+          <string>Volume</string>
+         </property>
+         <property name="buttonSymbols">
+          <enum>QAbstractSpinBox::NoButtons</enum>
+         </property>
          <property name="suffix">
           <string>%</string>
          </property>
@@ -618,6 +696,12 @@ left: 8px;
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
       <widget class="QDoubleSpinBox" name="audio_sb_fadeout">
+       <property name="toolTip">
+        <string/>
+       </property>
+       <property name="statusTip">
+        <string>Audio fade out interval</string>
+       </property>
        <property name="suffix">
         <string> s</string>
        </property>
@@ -634,6 +718,12 @@ left: 8px;
      </item>
      <item>
       <widget class="QPushButton" name="audio_btn_fadeout">
+       <property name="toolTip">
+        <string>Fade out audio</string>
+       </property>
+       <property name="statusTip">
+        <string>Fade out audio</string>
+       </property>
        <property name="text">
         <string>Fade Out</string>
        </property>
@@ -666,6 +756,9 @@ left: 8px;
          <italic>false</italic>
          <bold>true</bold>
         </font>
+       </property>
+       <property name="statusTip">
+        <string>Current video</string>
        </property>
        <property name="text">
         <string/>
@@ -702,7 +795,7 @@ left: 8px;
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>101</x>
@@ -727,6 +820,9 @@ left: 8px;
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="statusTip">
+        <string>Previous video</string>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -749,6 +845,9 @@ left: 8px;
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="statusTip">
+        <string>Skip backward</string>
        </property>
        <property name="text">
         <string/>
@@ -773,6 +872,9 @@ left: 8px;
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="statusTip">
+        <string>Adjust skip forward/backward time</string>
+       </property>
        <property name="suffix">
         <string>s</string>
        </property>
@@ -791,6 +893,9 @@ left: 8px;
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="statusTip">
+        <string>Skip forward</string>
        </property>
        <property name="text">
         <string/>
@@ -814,6 +919,9 @@ left: 8px;
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="statusTip">
+        <string>Next video</string>
        </property>
        <property name="text">
         <string/>

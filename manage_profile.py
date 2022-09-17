@@ -1,9 +1,8 @@
-from PyQt5.QtWidgets import (QDialog, QListWidget, QListWidgetItem, QPushButton, QDialogButtonBox, QLineEdit,
-    QMessageBox)
+from PyQt5.QtWidgets import QDialog, QListWidget, QListWidgetItem, QPushButton, QDialogButtonBox, QLineEdit, QMessageBox
 from PyQt5 import uic, QtCore
 from setting import Profile
 
-
+# Popup dialog to edit profile name
 class EditProfile(QDialog):
     def __init__(self):
         super(EditProfile, self).__init__()
@@ -26,7 +25,7 @@ class EditProfile(QDialog):
 
 
 
-
+# Manage profile window
 class ManageProfile(QDialog):
     def __init__(self):
         super(ManageProfile, self).__init__()
@@ -36,7 +35,7 @@ class ManageProfile(QDialog):
 
         self.profile_list = self.findChild(QListWidget, 'listWidget')
         self.list_profiles()
-
+        self.profile_list.itemDoubleClicked.connect(self.switch_profile)
 
         self.btn_new = self.findChild(QPushButton, 'btn_new')
         self.btn_edit = self.findChild(QPushButton, 'btn_edit')
@@ -45,7 +44,6 @@ class ManageProfile(QDialog):
         self.btn_edit.clicked.connect(self.edit)
         self.btn_delete.clicked.connect(self.delete)
         
-
         self.button_box = self.findChild(QDialogButtonBox, 'buttonBox')
         self.button_box.accepted.connect(self.switch_profile)
 
@@ -63,6 +61,11 @@ class ManageProfile(QDialog):
     def selected_profile(self):
         item = self.profile_list.currentItem()
         return item.text(), item.data(QtCore.Qt.UserRole)
+
+    def highlight_current(self):
+        item = next((i for i in self.profile_list.findItems(Profile.get_current().name, QtCore.Qt.MatchExactly)), None)
+        if item is not None: self.profile_list.setCurrentItem(item)
+
 
     def new(self):
         name = self.edit_profile.get_result('Add New Profile')
@@ -92,6 +95,7 @@ class ManageProfile(QDialog):
                 self.list_profiles()
 
     def switch_profile(self):
-        print('switch')
+        # print('switch')
         if self.profile_list.currentItem() is None: self.profile_list.setCurrentRow(0)
         Profile.set_current(self.selected_profile()[1])
+        self.hide()

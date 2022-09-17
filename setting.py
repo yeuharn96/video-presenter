@@ -47,6 +47,7 @@ class Profile:
         return { **self.__dict__, 'adjustment': self.adjustment.to_dict(), 'playback': self.playback.to_dict() }
 
     @classmethod
+    ### All setting keys are specified in here ONLY
     def from_json(cls, data = {}):
         '''all attributes of Profile instance are specified here only'''
         return cls(

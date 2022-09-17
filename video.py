@@ -1,12 +1,8 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, \
-    QSlider, QStyle, QSizePolicy, QFileDialog, QDesktopWidget
 import sys
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtCore import Qt, QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QBuffer
-from monitors import monitor_areas
-from setting import Profile
+from PyQt5.QtCore import Qt, QUrl, pyqtSignal
  
  
 class VideoPlayer(QWidget):
@@ -56,7 +52,7 @@ class VideoPlayer(QWidget):
 
         self.mediaPlayer.setVideoOutput(videowidget)
  
-        #media player signals
+        # media player signals
         self.mediaPlayer.stateChanged.connect(lambda state: self.mediastate_changed.emit(state == QMediaPlayer.PlayingState, state == QMediaPlayer.StoppedState))
         self.mediaPlayer.positionChanged.connect(self.position_changed.emit)
         self.mediaPlayer.durationChanged.connect(self.duration_changed.emit)
@@ -64,6 +60,7 @@ class VideoPlayer(QWidget):
         self.mediaPlayer.volumeChanged.connect(self.volume_changed.emit)
  
 
+    # ==================== Playlist ====================
     def add_media(self, path):
         if isinstance(path, str): path = [path]
         if not isinstance(path, list): return
@@ -76,12 +73,12 @@ class VideoPlayer(QWidget):
     def select_media(self, idx):
         self.playlist.setCurrentIndex(idx)
 
-    def set_play_loop(self, loop):
+    def set_playback_loop(self, loop):
         self._playback_loop = loop
         self._update_playback_mode()
 
-    def set_play_next(self, next):
-        self._playback_next = next
+    def set_playback_next(self, _next):
+        self._playback_next = _next
         self._update_playback_mode()
 
     def _update_playback_mode(self):
@@ -94,7 +91,10 @@ class VideoPlayer(QWidget):
             mode = QMediaPlaylist.Sequential
 
         self.playlist.setPlaybackMode(mode)
+    # ================ Playlist END ====================
 
+
+    # ==================== Video ====================
     def play_video(self):
         if self.playlist.mediaCount() == 0: return
 
@@ -106,17 +106,6 @@ class VideoPlayer(QWidget):
     def stop_video(self):
         self.mediaPlayer.stop()
     
-    def toggle_mute(self):
-        is_muted = self.mediaPlayer.isMuted()
-        self.mediaPlayer.setMuted(not is_muted)
-    
-    def volume(self):
-        return self.mediaPlayer.volume()
-
-    def set_volume(self, volume):
-        self.mediaPlayer.setVolume(volume)
-
- 
     def set_video_position(self, position):
         self.mediaPlayer.setPosition(position)
  
@@ -124,19 +113,24 @@ class VideoPlayer(QWidget):
         skip_to_position = self.mediaPlayer.position() + (seconds * 1000)
         self.mediaPlayer.setPosition(skip_to_position)
     
-    def set_video_next(self, next=True):
-        idx = self.playlist.nextIndex() if next else self.playlist.previousIndex()
+    def next_video(self, is_next=True):
+        idx = self.playlist.nextIndex() if is_next else self.playlist.previousIndex()
         if idx > -1: self.playlist.setCurrentIndex(idx)
+    # ==================== Video END ================
+
+    
+    # ==================== Audio ====================
+    def toggle_mute(self):
+        is_muted = self.mediaPlayer.isMuted()
+        self.mediaPlayer.setMuted(not is_muted)
+    
+    def set_volume(self, volume):
+        self.mediaPlayer.setVolume(volume)
+    # ==================== Audio END ================
+
 
     def handle_errors(self):
-        print("Error: " + self.mediaPlayer.errorString())
+        w = QWidget()
+        QMessageBox.critical(w, 'Media player error', self.mediaPlayer.errorString())
+        # print("Error: " + self.mediaPlayer.errorString())
  
- 
- 
-# print('monitor_areas :>', monitor_areas())
- 
-# app = QApplication(sys.argv)
-# monitor = QDesktopWidget().screenGeometry(0)
-# print('QT monitor :>',monitor.x(), monitor.y(), monitor.width(),monitor.height())
-# window = Window()
-# sys.exit(app.exec_())
