@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QMessageBox
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtCore import Qt, QUrl, pyqtSignal
@@ -14,6 +14,8 @@ class VideoPlayer(QWidget):
 
     playlist_index_changed = pyqtSignal(int)
 
+    hide_window = pyqtSignal()
+
     def __init__(self):
         super().__init__()
 
@@ -21,13 +23,16 @@ class VideoPlayer(QWidget):
         p.setColor(self.backgroundRole(), Qt.black)
         self.setPalette(p)
         # self.setWindowIcon(QIcon('player.png'))
+        self.setWindowFlags(Qt.FramelessWindowHint) # hide window border
  
         self.init_ui()
 
-        # hide window border
-        self.setWindowFlags(Qt.FramelessWindowHint)
- 
         # self.show()
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.hide_window.emit()
+        else: super().keyPressEvent(event)
  
  
     def init_ui(self):
@@ -58,7 +63,11 @@ class VideoPlayer(QWidget):
         self.mediaPlayer.durationChanged.connect(self.duration_changed.emit)
         self.mediaPlayer.mutedChanged.connect(self.muted_changed.emit)
         self.mediaPlayer.volumeChanged.connect(self.volume_changed.emit)
- 
+
+    def showFullScreen(self):
+        super().showNormal()
+        super().showFullScreen()
+
 
     # ==================== Playlist ====================
     def add_media(self, path):
@@ -129,8 +138,19 @@ class VideoPlayer(QWidget):
     # ==================== Audio END ================
 
 
-    def handle_errors(self):
+    def handle_errors(self, error):
         w = QWidget()
-        QMessageBox.critical(w, 'Media player error', self.mediaPlayer.errorString())
+        msg = self.mediaPlayer.errorString()
+        if len(msg) == 0:
+            error_msg = {
+                QMediaPlayer.ResourceError: "A media resource couldn't be resolved.<br/>You may try to install required codec service at <a href='https://codecguide.com/download_kl.htm'>K-Lite Codec Pack</a> to solve the problem.<br/>If problem persist, please contact support.",
+                QMediaPlayer.FormatError: "The format of a media resource isn't (fully) supported. Playback may still be possible, but without an audio or video component.",
+                QMediaPlayer.NetworkError: "A network error occurred.",
+                QMediaPlayer.AccessDeniedError: "There are not the appropriate permissions to play a media resource.",
+                QMediaPlayer.ServiceMissingError: "A valid playback service was not found, playback cannot proceed."
+            }
+            msg = error_msg.get(self.mediaPlayer.error(), 'Unknown error.')
+
+        QMessageBox.critical(w, 'Media player error', msg)
         # print("Error: " + self.mediaPlayer.errorString())
  

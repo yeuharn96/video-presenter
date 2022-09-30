@@ -154,19 +154,21 @@ class PlaybackControl(EmitEvent):
 class OutputControl(EmitEvent):
     event_show = 'show'
     event_hide = 'hide'
-    event_apply_adjustment = 'apply-adjustment'
+    event_apply_adjustment = 'apply_adjustment'
 
     def __init__(self, findChild):
         super().__init__()
         self.output_btn_show = findChild(QPushButton, 'output_btn_show')
         self.output_btn_hide = findChild(QPushButton, 'output_btn_hide')
+        self.output_btn_fullscreen = findChild(QPushButton, 'output_btn_fullscreen')
         self.outputadj_sb_top = findChild(QSpinBox, 'outputadj_sb_top')
         self.outputadj_sb_left = findChild(QSpinBox, 'outputadj_sb_left')
         self.outputadj_sb_right = findChild(QSpinBox, 'outputadj_sb_right')
         self.outputadj_sb_bottom = findChild(QSpinBox, 'outputadj_sb_bottom')
 
-        self.output_btn_show.clicked.connect(self.output_show)
+        self.output_btn_show.clicked.connect(lambda: self.output_show(False))
         self.output_btn_hide.clicked.connect(lambda: self.emit_event(OutputControl.event_hide))
+        self.output_btn_fullscreen.clicked.connect(lambda: self.output_show(True))
         self.outputadj_sb_top.valueChanged.connect(lambda value: self.outputadj_update_value('top', value))
         self.outputadj_sb_left.valueChanged.connect(lambda value: self.outputadj_update_value('left', value))
         self.outputadj_sb_right.valueChanged.connect(lambda value: self.outputadj_update_value('right', value))
@@ -176,9 +178,9 @@ class OutputControl(EmitEvent):
         self.outputadj_sb_right.editingFinished.connect(self.output_apply_adjustment)
         self.outputadj_sb_bottom.editingFinished.connect(self.output_apply_adjustment)
 
-    def output_show(self):
-        self.output_apply_adjustment()
-        self.emit_event(OutputControl.event_show)
+    def output_show(self, fullscreen=False):
+        if not fullscreen: self.output_apply_adjustment()
+        self.emit_event(OutputControl.event_show, fullscreen)
     
     def outputadj_update_value(self, pos, value):
         setattr(Profile.get_current().adjustment, pos, value)
@@ -275,6 +277,10 @@ class VideoControl(EmitEvent):
 
     def video_update_skip_step(self, value):
         Profile.get_current().skip_step = value
+    
+    def set_controls_enabled(self, enable):
+        self.video_btn_play.setEnabled(enable)
+        self.video_btn_stop.setEnabled(enable)
 
 class MenuBarControl(EmitEvent):
     event_profile_changed = 'profile_changed'
@@ -308,16 +314,17 @@ class MenuBarControl(EmitEvent):
             act.triggered.connect(lambda _, id=p.id: _action_switch_profile(id))
 
 
+MAIN_UI_FILE = r'.\ui\main.ui'
 class VideoPresenter(QMainWindow):
     def closeEvent(self, event):
         # print('closeEvent >>', event)
         Profile.save_all()
-        exit()
+        sys.exit()
         
     def __init__(self):
         super(VideoPresenter, self).__init__()
 
-        uic.loadUi('main.ui', self)
+        uic.loadUi(MAIN_UI_FILE, self)
 
         self.setWindowTitle("PyQt5 Media Player")
         # self.setWindowIcon(QIcon('player.png'))
@@ -343,6 +350,7 @@ class VideoPresenter(QMainWindow):
         self.videoPlayer.muted_changed.connect(lambda muted: self.c_audio.audio_update_muted(muted))
         self.videoPlayer.volume_changed.connect(lambda volume: self.c_audio.audio_update_volume(volume))
         self.videoPlayer.playlist_index_changed.connect(self.handle_playlist_index_changed)
+        self.videoPlayer.hide_window.connect(self.handle_output_hide)
 
         # playlist
         self.c_vidlist = VidlistControl(self.findChild)
@@ -411,27 +419,43 @@ class VideoPresenter(QMainWindow):
             self.c_vidlist.vidlist.setCurrentRow(idx)
             self.c_video.video_lbl_current_video.setText(self.c_vidlist.vidlist.currentItem().text())
     
-    def handle_output_show(self):
-        self.videoPlayer.show()
-        self.video_btn_play.setEnabled(True)
-        self.video_btn_stop.setEnabled(True)
+    def handle_output_show(self, fullscreen = False):
+        if fullscreen: self.videoPlayer.showFullScreen()
+        else: self.videoPlayer.showNormal()
+        self.c_video.set_controls_enabled(True)
     
     def handle_output_hide(self):
+        if self.videoPlayer.isFullScreen():
+            self.videoPlayer.showNormal()
         self.videoPlayer.hide()
         self.videoPlayer.mediaPlayer.pause()
-        self.video_btn_play.setEnabled(False)
-        self.video_btn_stop.setEnabled(False)
+        self.c_video.set_controls_enabled(False)
     # ============== EVENT HANDLERS END ==================
     
 
 
- if __name__ == '__main__':
+#==========================
+# https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow
+SW_HIDE = 0
+SW_NORMAL = 1
+SW_MAXIMIZE = 3
+SW_MINIMIZE = 6
+#==========================
+
+if __name__ == '__main__':
+    import ctypes
+
+    print('Starting app...')
     app = QApplication(sys.argv)
     try:
+        print('Loading settings...')
         Profile.load_all()
         Profile.set_current(0)
+        print('Building windows...')
         window = VideoPresenter()
-        sys.exit(app.exec_())
+        # ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), SW_HIDE)
+        # sys.exit(app.exec_())
+        app.exec_()
     except Exception as e:
         w = QWidget()
         QMessageBox.critical(w, 'An unexpected error occurred', str(e))

@@ -2,11 +2,14 @@ from PyQt5.QtWidgets import QDialog, QListWidget, QListWidgetItem, QPushButton, 
 from PyQt5 import uic, QtCore
 from setting import Profile
 
+EDIT_PROFILE_UI_FILE = r'.\ui\edit_profile.ui'
+MANAGE_PROFILE_UI_FILE = r'.\ui\manage_profile.ui'
+
 # Popup dialog to edit profile name
 class EditProfile(QDialog):
     def __init__(self):
         super(EditProfile, self).__init__()
-        uic.loadUi('edit_profile.ui', self)
+        uic.loadUi(EDIT_PROFILE_UI_FILE, self)
 
         self.result = None
         self.line_edit = self.findChild(QLineEdit, 'lineEdit')
@@ -29,7 +32,7 @@ class EditProfile(QDialog):
 class ManageProfile(QDialog):
     def __init__(self):
         super(ManageProfile, self).__init__()
-        uic.loadUi('manage_profile.ui', self)
+        uic.loadUi(MANAGE_PROFILE_UI_FILE, self)
 
         self.edit_profile = EditProfile()
 
