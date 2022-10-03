@@ -326,8 +326,8 @@ class VideoPresenter(QMainWindow):
 
         uic.loadUi(MAIN_UI_FILE, self)
 
-        self.setWindowTitle("PyQt5 Media Player")
-        # self.setWindowIcon(QIcon('player.png'))
+        self.setWindowTitle("Extended Video Player")
+        self.setWindowIcon(QIcon(r'.\icons\ico.ico'))
 
         self.init_controls()
 
@@ -444,6 +444,11 @@ SW_MINIMIZE = 6
 
 if __name__ == '__main__':
     import ctypes
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option('-c', '--console', dest='show_console', default=False, action="store_true", help='show console')
+    (options,args) = parser.parse_args()
+    SHOW_CONSOLE = options.show_console
 
     print('Starting app...')
     app = QApplication(sys.argv)
@@ -453,7 +458,8 @@ if __name__ == '__main__':
         Profile.set_current(0)
         print('Building windows...')
         window = VideoPresenter()
-        # ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), SW_HIDE)
+        if not SHOW_CONSOLE:
+            ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), SW_HIDE)
         # sys.exit(app.exec_())
         app.exec_()
     except Exception as e:

@@ -143,7 +143,7 @@ class VideoPlayer(QWidget):
         msg = self.mediaPlayer.errorString()
         if len(msg) == 0:
             error_msg = {
-                QMediaPlayer.ResourceError: "A media resource couldn't be resolved.<br/>You may try to install required codec service at <a href='https://codecguide.com/download_kl.htm'>K-Lite Codec Pack</a> to solve the problem.<br/>If problem persist, please contact support.",
+                QMediaPlayer.ResourceError: "A media resource couldn't be resolved.<br/>You may try to install required codec service at <a href='https://github.com/Nevcairiel/LAVFilters/releases'>LAVFilters</a> to solve the problem.<br/>If problem persist, please contact support.",
                 QMediaPlayer.FormatError: "The format of a media resource isn't (fully) supported. Playback may still be possible, but without an audio or video component.",
                 QMediaPlayer.NetworkError: "A network error occurred.",
                 QMediaPlayer.AccessDeniedError: "There are not the appropriate permissions to play a media resource.",
