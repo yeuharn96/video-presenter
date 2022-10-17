@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 import subprocess
 
-SETTING_FILE_PATH = os.getenv('LOCALAPPDATA') + r'\pptx-py\video-presenter.json'
+SETTING_FILE_PATH = os.getenv('LOCALAPPDATA') + r'\ExtendedVideo\setting.json'
 
 class JsonWrapper:
     def to_dict(self):
@@ -90,8 +90,10 @@ class Profile:
             'videos': cls.videos
         }
         json_to_save = json.dumps(json_to_save, indent=2)
-        with open(SETTING_FILE_PATH, 'r') as f:
-            json_saved = f.read()
+        json_saved = ''
+        if os.path.exists(SETTING_FILE_PATH):
+            with open(SETTING_FILE_PATH, 'r') as f:
+                json_saved = f.read()
 
         if json_saved != json_to_save:
             with open(SETTING_FILE_PATH, 'w') as f:
